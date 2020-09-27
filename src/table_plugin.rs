@@ -29,7 +29,7 @@ pub struct ColumnDefinition {
 }
 
 pub struct TablePlugin {
-    details: Box<TablePluginDetails>,
+    details: Box<dyn TablePluginDetails>,
 }
 
 pub trait TablePluginDetails: Sync + Send {
@@ -39,10 +39,8 @@ pub trait TablePluginDetails: Sync + Send {
 }
 
 impl TablePlugin {
-    pub fn new(details: Box<TablePluginDetails>) -> Self {
-        Self {
-            details
-        }
+    pub fn new(details: Box<dyn TablePluginDetails>) -> Self {
+        Self { details }
     }
 }
 
@@ -74,7 +72,7 @@ impl Plugin for TablePlugin {
         if ctx.contains_key("action") == false {
             let message = "Table plugins must include a request action".to_string();
             let status = ExtensionStatus::new(1, message, None);
-            return ExtensionResponse::new(status, vec![])
+            return ExtensionResponse::new(status, vec![]);
         }
 
         let action = ctx.get("action").unwrap();
@@ -88,12 +86,11 @@ impl Plugin for TablePlugin {
 
                 // TODO: For now we always ignore the context constraints from the "context" property.
                 self.details.generate(constraint_ctx)
-            },
-            "columns" => {
-                self.routes()
-            },
+            }
+            "columns" => self.routes(),
             _ => {
-                let status = ExtensionStatus::new(1, format!("Unknown action ('{}')", action), None);
+                let status =
+                    ExtensionStatus::new(1, format!("Unknown action ('{}')", action), None);
                 ExtensionResponse::new(status, vec![])
             }
         }

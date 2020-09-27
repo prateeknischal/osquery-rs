@@ -2,21 +2,19 @@ use ::Plugin;
 use osquery::*;
 
 pub struct LoggerPlugin {
-    details: Box<LoggerPluginDetails>,
+    details: Box<dyn LoggerPluginDetails>,
 }
 
 pub trait LoggerPluginDetails: Sync + Send {
     fn name(&self) -> String;
-    fn log_string(&self, &str) -> ExtensionStatus;
-    fn log_health(&self, &str) -> ExtensionStatus;
-    fn log_snapshot(&self, &str) -> ExtensionStatus;
+    fn log_string(&self, msg: &str) -> ExtensionStatus;
+    fn log_health(&self, msg: &str) -> ExtensionStatus;
+    fn log_snapshot(&self, msg: &str) -> ExtensionStatus;
 }
 
 impl LoggerPlugin {
-    pub fn new(details: Box<LoggerPluginDetails>) -> Self {
-        Self {
-            details
-        }
+    pub fn new(details: Box<dyn LoggerPluginDetails>) -> Self {
+        Self { details }
     }
 }
 
@@ -59,4 +57,3 @@ impl Plugin for LoggerPlugin {
         ExtensionResponse::new(status, vec![])
     }
 }
-

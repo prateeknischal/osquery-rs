@@ -7,35 +7,24 @@ use std::sync::Arc;
 
 use threadpool::ThreadPool;
 
-use thrift::{
-    ApplicationError,
-    ApplicationErrorKind
-};
 use thrift::protocol::{
-    TInputProtocolFactory,
-    TOutputProtocolFactory,
-    TInputProtocol,
-    TOutputProtocol,
+    TInputProtocol, TInputProtocolFactory, TOutputProtocol, TOutputProtocolFactory,
 };
-use thrift::transport::{
-    TReadTransportFactory,
-    TWriteTransportFactory,
-};
+use thrift::transport::{TReadTransportFactory, TWriteTransportFactory};
+use thrift::{ApplicationError, ApplicationErrorKind};
 
-use thrift::server::{
-    TProcessor,
-};
+use thrift::server::TProcessor;
 
 use stop_signal::*;
 
 #[derive(Debug)]
 pub struct LocalServer<PRC, RTF, IPF, WTF, OPF>
-    where
-        PRC: TProcessor + Send + Sync + 'static,
-        RTF: TReadTransportFactory + 'static,
-        IPF: TInputProtocolFactory + 'static,
-        WTF: TWriteTransportFactory + 'static,
-        OPF: TOutputProtocolFactory + 'static,
+where
+    PRC: TProcessor + Send + Sync + 'static,
+    RTF: TReadTransportFactory + 'static,
+    IPF: TInputProtocolFactory + 'static,
+    WTF: TWriteTransportFactory + 'static,
+    OPF: TOutputProtocolFactory + 'static,
 {
     r_trans_factory: RTF,
     i_proto_factory: IPF,
@@ -46,12 +35,13 @@ pub struct LocalServer<PRC, RTF, IPF, WTF, OPF>
 }
 
 impl<PRC, RTF, IPF, WTF, OPF> LocalServer<PRC, RTF, IPF, WTF, OPF>
-    where PRC: TProcessor + Send + Sync + 'static,
-          RTF: TReadTransportFactory + 'static,
-          IPF: TInputProtocolFactory + 'static,
-          WTF: TWriteTransportFactory + 'static,
-          OPF: TOutputProtocolFactory + 'static {
-
+where
+    PRC: TProcessor + Send + Sync + 'static,
+    RTF: TReadTransportFactory + 'static,
+    IPF: TInputProtocolFactory + 'static,
+    WTF: TWriteTransportFactory + 'static,
+    OPF: TOutputProtocolFactory + 'static,
+{
     pub fn new(
         read_transport_factory: RTF,
         input_protocol_factory: IPF,
@@ -66,10 +56,7 @@ impl<PRC, RTF, IPF, WTF, OPF> LocalServer<PRC, RTF, IPF, WTF, OPF>
             w_trans_factory: write_transport_factory,
             o_proto_factory: output_protocol_factory,
             processor: Arc::new(processor),
-            worker_pool: ThreadPool::with_name(
-                "Thrift service processor".to_owned(),
-                num_workers,
-            ),
+            worker_pool: ThreadPool::with_name("Thrift service processor".to_owned(), num_workers),
         }
     }
 
@@ -91,29 +78,28 @@ impl<PRC, RTF, IPF, WTF, OPF> LocalServer<PRC, RTF, IPF, WTF, OPF>
                     let (i_prot, o_prot) = self.new_protocols_for_connection(s)?;
                     let processor = self.processor.clone();
                     self.worker_pool
-                        .execute(move || handle_incoming_connection(processor, i_prot, o_prot),);
+                        .execute(move || handle_incoming_connection(processor, i_prot, o_prot));
                 }
                 Err(_) => {}
             }
             if done.wait_timeout(std::time::Duration::from_millis(100)) {
-                break
+                break;
             }
         }
 
-        Err(
-            thrift::Error::Application(
-                ApplicationError {
-                    kind: ApplicationErrorKind::Unknown,
-                    message: "aborted listen loop".into(),
-                },
-            ),
-        )
+        Err(thrift::Error::Application(ApplicationError {
+            kind: ApplicationErrorKind::Unknown,
+            message: "aborted listen loop".into(),
+        }))
     }
 
     fn new_protocols_for_connection(
         &mut self,
         stream: super::sys::TChannel,
-    ) -> thrift::Result<(Box<TInputProtocol + Send>, Box<TOutputProtocol + Send>)> {
+    ) -> thrift::Result<(
+        Box<dyn TInputProtocol + Send>,
+        Box<dyn TOutputProtocol + Send>,
+    )> {
         // split it into two - one to be owned by the
         // input tran/proto and the other by the output
         let w_chan = stream.try_clone()?;
@@ -133,8 +119,8 @@ impl<PRC, RTF, IPF, WTF, OPF> LocalServer<PRC, RTF, IPF, WTF, OPF>
 
 fn handle_incoming_connection<PRC>(
     processor: Arc<PRC>,
-    i_prot: Box<TInputProtocol>,
-    o_prot: Box<TOutputProtocol>,
+    i_prot: Box<dyn TInputProtocol>,
+    o_prot: Box<dyn TOutputProtocol>,
 ) where
     PRC: TProcessor,
 {

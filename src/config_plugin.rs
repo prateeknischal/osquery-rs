@@ -1,10 +1,10 @@
 extern crate std;
 
-use osquery::*;
 use ::Plugin;
+use osquery::*;
 
 pub struct ConfigPlugin {
-    details: Box<ConfigPluginDetails>,
+    details: Box<dyn ConfigPluginDetails>,
 }
 
 pub trait ConfigPluginDetails: Sync + Send {
@@ -13,10 +13,8 @@ pub trait ConfigPluginDetails: Sync + Send {
 }
 
 impl ConfigPlugin {
-    pub fn new(details: Box<ConfigPluginDetails>) -> Self {
-        Self {
-            details
-        }
+    pub fn new(details: Box<dyn ConfigPluginDetails>) -> Self {
+        Self { details }
     }
 }
 
@@ -32,16 +30,18 @@ impl Plugin for ConfigPlugin {
     fn call(&self, ctx: ExtensionPluginRequest) -> ExtensionResponse {
         let action_key_str = "action";
         if ctx.contains_key(action_key_str) {
-            let action = ctx.get(action_key_str).expect("'action' key expected to have value if in map.");
+            let action = ctx
+                .get(action_key_str)
+                .expect("'action' key expected to have value if in map.");
             if action == "genConfig" {
                 let status = ExtensionStatus::new(0, "OK".to_string(), None);
-                return ExtensionResponse::new(status, self.details.content())
+                return ExtensionResponse::new(status, self.details.content());
             }
         }
 
         let message = "Not a valid config plugin action".to_string();
         let status = ExtensionStatus::new(1, message, None);
-        ExtensionResponse::new(status,  vec![])
+        ExtensionResponse::new(status, vec![])
     }
 
     fn routes(&self) -> ExtensionResponse {
