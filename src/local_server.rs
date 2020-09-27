@@ -126,11 +126,8 @@ fn handle_incoming_connection<PRC>(
 {
     let mut i_prot = i_prot;
     let mut o_prot = o_prot;
-    loop {
-        let r = processor.process(&mut *i_prot, &mut *o_prot);
-        if let Err(e) = r {
-            debug_println!("WARN: processor completed with error: {:?}", e);
-            break;
-        }
+    let r = processor.process(&mut *i_prot, &mut *o_prot);
+    if let Err(e) = r {
+        debug_println!("WARN: processor completed with error: {:?}", e);
     }
 }
